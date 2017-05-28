@@ -1,38 +1,42 @@
-version: "3"
-
+version: "3.2"
 
 services:
-
-  consul:
-    image: sdelrio/consul${TAG}
-    labels: [app=consul]
-    ports:
-        - "8500:8500"
+  consul-1:
+    image: consul:0.8.3
+    command: "consul agent -data-dir=/tmp/data -bootstrap-expect=3 -server -ui -client=0.0.0.0 -disable-host-node-id=true"
     networks:
-        - consul-net
+      - consul
+    ports:
+      - "8500:8500"
+      - "8300:8300"
+      - "8301:8301"
+      - "8302:8302"
     environment:
-        - 'CONSUL_LOCAL_CONFIG={"skip_leave_on_interrupt": true}'
-        - CONSUL_BIND_INTERFACE=eth0
-        - CONSUL=consul
-        - CONSUL_CHECK_LEADER=true
-    deploy:
-        replicas: 3
-        placement:
-            constraints: [node.role == manager]
-        resources:
-            reservations:
-                memory: 128M
-        restart_policy:
-            condition: on-failure
-            delay: 5s
-            max_attempts: 3
-            window: 120s
-        update_config:
-            parallelism: 1
-            delay: 10s
-            failure_action: continue
+      - "CONSUL_CLIENT_INTERFACE=eth0"
+  consul-2:
+    image: consul:0.8.3
+    command: "consul agent -data-dir=/tmp/data -server -retry-join=consul-1 -disable-host-node-id=true"
+    environment:
+      - "CONSUL_CLIENT_INTERFACE=eth0"
+    links:
+      - consul-1
+    networks:
+      - consul
+  
+  consul-3:
+    image: consul:0.8.3
+    command: "consul agent -data-dir=/tmp/data -server -retry-join=consul-1 -disable-host-node-id=true"
+    environment:
+      - "CONSUL_CLIENT_INTERFACE=eth0"
+    links:
+      - consul-1
+    networks:
+      - consul
+
 
 networks:
-  consul-net:
-    external: true
-
+  consul:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.0.0/24
