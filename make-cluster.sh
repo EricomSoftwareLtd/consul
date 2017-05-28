@@ -14,3 +14,7 @@ for i in 2 3; do
   eval $(docker-machine env swarm-$i)
   docker swarm join --token $TOKEN --advertise-addr $(docker-machine ip swarm-$i) $(docker-machine ip swarm-1):2377
 done
+
+
+# Download images section
+
